@@ -3,26 +3,29 @@ package com.avito.diploma.controller;
 import com.avito.diploma.dto.CommentDTO;
 import com.avito.diploma.dto.CommentsDTO;
 import com.avito.diploma.dto.CreateOrUpdateCommentDTO;
+import com.avito.diploma.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Collections;
 
 @RestController
 @CrossOrigin(value = "http://localhost:3000")
 @Tag(name = "Комментарии")
+@RequiredArgsConstructor
 public class CommentController {
 
-        @Operation(
-                summary = "Получение комментариев объявления",
-                responses = {
-                        @ApiResponse(
+    private final CommentService commentService;
+
+    @Operation(
+            summary = "Получение комментариев объявления",
+            responses = {
+                    @ApiResponse(
                             responseCode = "200",
                             description = "OK",
                             content = @Content(schema = @Schema(implementation = CommentsDTO.class))
@@ -35,10 +38,7 @@ public class CommentController {
     public ResponseEntity<CommentsDTO> getComments(
             @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id) {
-        // Заглушка - пустой список комментариев
-        CommentsDTO commentsDTO = new CommentsDTO();
-        commentsDTO.setCount(0);
-        commentsDTO.setResults(Collections.emptyList());
+        CommentsDTO commentsDTO = commentService.getComments(id);
         return ResponseEntity.ok(commentsDTO);
     }
 
@@ -59,17 +59,7 @@ public class CommentController {
             @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id,
             @RequestBody CreateOrUpdateCommentDTO createOrUpdateCommentDTO) {
-        // Заглушка
-        System.out.println("Add comment to ad " + id + ": " + createOrUpdateCommentDTO.getText());
-
-        CommentDTO commentDTO = new CommentDTO();
-        commentDTO.setPk(1);
-        commentDTO.setAuthor(1);
-        commentDTO.setAuthorFirstName("Иван");
-        commentDTO.setAuthorImage("/images/user1.jpg");
-        commentDTO.setCreatedAt(System.currentTimeMillis());
-        commentDTO.setText(createOrUpdateCommentDTO.getText());
-
+        CommentDTO commentDTO = commentService.addComment(id, createOrUpdateCommentDTO);
         return ResponseEntity.ok(commentDTO);
     }
 
@@ -88,8 +78,7 @@ public class CommentController {
             @PathVariable Integer adId,
             @Parameter(description = "ID комментария", required = true)
             @PathVariable Integer commentId) {
-        // Заглушка
-        System.out.println("Delete comment " + commentId + " from ad " + adId);
+        commentService.deleteComment(adId, commentId);
         return ResponseEntity.ok().build();
     }
 
@@ -113,17 +102,7 @@ public class CommentController {
             @Parameter(description = "ID комментария", required = true)
             @PathVariable Integer commentId,
             @RequestBody CreateOrUpdateCommentDTO createOrUpdateCommentDTO) {
-        // Заглушка
-        System.out.println("Update comment " + commentId + " in ad " + adId);
-
-        CommentDTO commentDTO = new CommentDTO();
-        commentDTO.setPk(commentId);
-        commentDTO.setAuthor(1);
-        commentDTO.setAuthorFirstName("Иван");
-        commentDTO.setAuthorImage("/images/user1.jpg");
-        commentDTO.setCreatedAt(System.currentTimeMillis());
-        commentDTO.setText(createOrUpdateCommentDTO.getText());
-
+        CommentDTO commentDTO = commentService.updateComment(adId, commentId, createOrUpdateCommentDTO);
         return ResponseEntity.ok(commentDTO);
     }
 }

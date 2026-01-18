@@ -1,27 +1,30 @@
 package com.avito.diploma.controller;
 
-import com.avito.diploma.dto.AdDTO;
-import com.avito.diploma.dto.AdsDTO;
-import com.avito.diploma.dto.CreateOrUpdateAdDTO;
-import com.avito.diploma.dto.ExtendedAdDTO;
+import com.avito.diploma.dto.*;
+import com.avito.diploma.service.AdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/ads")
 @CrossOrigin(value = "http://localhost:3000")
 @Tag(name = "Объявления")
+@RequiredArgsConstructor
 public class AdController {
+
+    private final AdService adService;
 
     @Operation(
             summary = "Получение всех объявлений",
@@ -34,16 +37,13 @@ public class AdController {
             }
     )
     @GetMapping
-    public ResponseEntity<AdsDTO> getAllAds() {
-        // Заглушка - пустой список объявлений
-        AdsDTO adsDTO = new AdsDTO();
-        adsDTO.setCount(0);
-        adsDTO.setResults(Collections.emptyList());
+    public ResponseEntity<AdsDTO> getAllAds(Pageable pageable) {
+        AdsDTO adsDTO = adService.getAllAds(pageable);
         return ResponseEntity.ok(adsDTO);
     }
 
     @Operation(
-            summary = "Добавление объявления",
+            summary = "Добавление объявления (без изображения)",
             responses = {
                     @ApiResponse(
                             responseCode = "201",
@@ -53,19 +53,36 @@ public class AdController {
                     @ApiResponse(responseCode = "401", description = "Unauthorized")
             }
     )
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AdDTO> addAd(
-            @RequestPart("properties") CreateOrUpdateAdDTO properties,
-            @RequestPart("image") MultipartFile image) {
-        // Заглушка
-        System.out.println("Add ad: " + properties.getTitle() + ", image: " + image.getOriginalFilename());
+    @PostMapping
+    public ResponseEntity<AdDTO> addAd(@RequestBody CreateOrUpdateAdDTO createOrUpdateAdDTO) {
+        AdDTO adDTO = adService.createAd(createOrUpdateAdDTO);
+        return ResponseEntity.status(201).body(adDTO);
+    }
 
-        AdDTO adDTO = new AdDTO();
-        adDTO.setPk(1);
-        adDTO.setAuthor(1);
-        adDTO.setTitle(properties.getTitle());
-        adDTO.setPrice(properties.getPrice());
-        adDTO.setImage("/images/ads/1.jpg");
+    @Operation(
+            summary = "Добавление объявления с изображением",
+            description = "Используйте multipart/form-data для отправки данных",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "Created",
+                            content = @Content(schema = @Schema(implementation = AdDTO.class))
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - ошибка при загрузке файла")
+            }
+    )
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AdDTO> addAdWithImage(
+            @RequestPart("properties") CreateOrUpdateAdDTO properties,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+
+        AdDTO adDTO;
+        if (image != null && !image.isEmpty()) {
+            adDTO = adService.createAdWithImage(properties, image);
+        } else {
+            adDTO = adService.createAd(properties);
+        }
 
         return ResponseEntity.status(201).body(adDTO);
     }
@@ -83,21 +100,10 @@ public class AdController {
             }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<ExtendedAdDTO> getAds(
+    public ResponseEntity<ExtendedAdDTO> getAd(
             @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id) {
-        // Заглушка
-        ExtendedAdDTO extendedAdDTO = new ExtendedAdDTO();
-        extendedAdDTO.setPk(id);
-        extendedAdDTO.setAuthorFirstName("Иван");
-        extendedAdDTO.setAuthorLastName("Иванов");
-        extendedAdDTO.setDescription("Описание объявления");
-        extendedAdDTO.setEmail("user@example.com");
-        extendedAdDTO.setImage("/images/ads/" + id + ".jpg");
-        extendedAdDTO.setPhone("+79991234567");
-        extendedAdDTO.setPrice(10000);
-        extendedAdDTO.setTitle("Объявление " + id);
-
+        ExtendedAdDTO extendedAdDTO = adService.getAd(id);
         return ResponseEntity.ok(extendedAdDTO);
     }
 
@@ -114,8 +120,7 @@ public class AdController {
     public ResponseEntity<Void> removeAd(
             @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id) {
-        // Заглушка
-        System.out.println("Delete ad with id: " + id);
+        adService.deleteAd(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -133,20 +138,11 @@ public class AdController {
             }
     )
     @PatchMapping("/{id}")
-    public ResponseEntity<AdDTO> updateAds(
+    public ResponseEntity<AdDTO> updateAd(
             @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id,
             @RequestBody CreateOrUpdateAdDTO createOrUpdateAdDTO) {
-        // Заглушка
-        System.out.println("Update ad " + id + ": " + createOrUpdateAdDTO.getTitle());
-
-        AdDTO adDTO = new AdDTO();
-        adDTO.setPk(id);
-        adDTO.setAuthor(1);
-        adDTO.setTitle(createOrUpdateAdDTO.getTitle());
-        adDTO.setPrice(createOrUpdateAdDTO.getPrice());
-        adDTO.setImage("/images/ads/" + id + ".jpg");
-
+        AdDTO adDTO = adService.updateAd(id, createOrUpdateAdDTO);
         return ResponseEntity.ok(adDTO);
     }
 
@@ -163,29 +159,35 @@ public class AdController {
     )
     @GetMapping("/me")
     public ResponseEntity<AdsDTO> getAdsMe() {
-        // Заглушка - пустой список
-        AdsDTO adsDTO = new AdsDTO();
-        adsDTO.setCount(0);
-        adsDTO.setResults(Collections.emptyList());
+        AdsDTO adsDTO = adService.getUserAds();
         return ResponseEntity.ok(adsDTO);
     }
 
     @Operation(
-            summary = "Обновление картинки объявления",
+            summary = "Обновление изображения объявления",
+            description = "Загружает новое изображение для существующего объявления",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "OK"),
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "OK",
+                            content = @Content(mediaType = "image/*")
+                    ),
                     @ApiResponse(responseCode = "401", description = "Unauthorized"),
                     @ApiResponse(responseCode = "403", description = "Forbidden"),
-                    @ApiResponse(responseCode = "404", description = "Not found")
+                    @ApiResponse(responseCode = "404", description = "Not found"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - ошибка при загрузке файла")
             }
     )
     @PatchMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<byte[]> updateImage(
-            @Parameter(description = "ID объявления", required = true)
             @PathVariable Integer id,
-            @RequestParam("image") MultipartFile image) {
-        // Заглушка
-        System.out.println("Update image for ad " + id + ": " + image.getOriginalFilename());
-        return ResponseEntity.ok().build();
+            @RequestParam("image") MultipartFile image) throws IOException {
+
+        byte[] imageData = adService.updateAdImage(id, image);
+        String contentType = image.getContentType();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType != null ? contentType : MediaType.IMAGE_JPEG_VALUE))
+                .body(imageData);
     }
 }

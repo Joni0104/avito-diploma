@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2-fix-image-data-postgresql
+      author: dashulya
+      dbms: postgresql
+      changes:
+        - modifyDataType:
+            tableName: images
+            columnName: data
+            newDataType: BYTEA
+            remarks: "Исправляем OID на BYTEA для PostgreSQL"
+
+  - changeSet:
+      id: 2-fix-image-data-h2
+      author: dashulya
+      dbms: h2
+      changes:
+        - modifyDataType:
+            tableName: images
+            columnName: data
+            newDataType: BLOB
+            remarks: "Исправляем OID на BLOB для H2"

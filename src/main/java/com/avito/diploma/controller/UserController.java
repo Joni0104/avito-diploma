@@ -3,21 +3,30 @@ package com.avito.diploma.controller;
 import com.avito.diploma.dto.NewPasswordDTO;
 import com.avito.diploma.dto.UpdateUserDTO;
 import com.avito.diploma.dto.UserDTO;
+import com.avito.diploma.service.AuthService;
+import com.avito.diploma.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/users")
 @CrossOrigin(value = "http://localhost:3000")
 @Tag(name = "Пользователи")
+@RequiredArgsConstructor
 public class UserController {
+
+    private final AuthService authService;
+    private final UserService userService;
 
     @Operation(
             summary = "Обновление пароля",
@@ -29,8 +38,7 @@ public class UserController {
     )
     @PostMapping("/set_password")
     public ResponseEntity<Void> setPassword(@RequestBody NewPasswordDTO newPasswordDTO) {
-        // Заглушка
-        System.out.println("Password change attempt");
+        authService.changePassword(newPasswordDTO);
         return ResponseEntity.ok().build();
     }
 
@@ -47,15 +55,7 @@ public class UserController {
     )
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getUser() {
-        // Заглушка - возвращаем пустого пользователя
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(1);
-        userDTO.setEmail("user@example.com");
-        userDTO.setFirstName("Иван");
-        userDTO.setLastName("Иванов");
-        userDTO.setPhone("+79991234567");
-        userDTO.setRole(com.avito.diploma.dto.RegisterDTO.Role.USER);
-        userDTO.setImage("/images/user1.jpg");
+        UserDTO userDTO = userService.getCurrentUser();
         return ResponseEntity.ok(userDTO);
     }
 
@@ -71,23 +71,26 @@ public class UserController {
             }
     )
     @PatchMapping("/me")
-    public ResponseEntity<UpdateUserDTO> updateUser(@RequestBody UpdateUserDTO updateUserDTO) {
-        // Заглушка - возвращаем то же самое DTO
-        System.out.println("Update user: " + updateUserDTO.getFirstName() + " " + updateUserDTO.getLastName());
-        return ResponseEntity.ok(updateUserDTO);
+    public ResponseEntity<UserDTO> updateUser(@RequestBody UpdateUserDTO updateUserDTO) {
+        UserDTO updatedUser = userService.updateCurrentUser(updateUserDTO);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @Operation(
             summary = "Обновление аватара авторизованного пользователя",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "OK"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized")
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "OK",
+                            content = @Content(schema = @Schema(implementation = UserDTO.class))
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - ошибка при загрузке файла")
             }
     )
     @PatchMapping(value = "/me/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Void> updateUserImage(@RequestParam("image") MultipartFile image) {
-        // Заглушка
-        System.out.println("Update user image: " + image.getOriginalFilename());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<UserDTO> updateUserImage(@RequestParam("image") MultipartFile image) throws IOException {
+        UserDTO updatedUser = userService.updateUserImage(image);
+        return ResponseEntity.ok(updatedUser);
     }
 }
