@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AvitoDiplomaApplication {
+public class AvitoDiplomaApplicationold {
 
     public static void main(String[] args) {
-        SpringApplication.run(AvitoDiplomaApplication.class, args);
+        SpringApplication.run(AvitoDiplomaApplicationold.class, args);
     }
 }

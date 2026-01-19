@@ -2,17 +2,13 @@ package com.avito.diploma.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-
-import static org.springframework.security.config.Customizer.withDefaults;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
@@ -20,21 +16,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Публичные эндпоинты
-                        .requestMatchers(HttpMethod.GET, "/ads").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/ads/{id}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/ads/{id}/comments").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/images/**").permitAll()
-                        .requestMatchers("/register", "/login").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-
-                        // Защищенные эндпоинты
-                        .requestMatchers("/ads/**", "/users/**").authenticated()
-                        .anyRequest().authenticated()
+                        // Разрешаем ВСЁ без авторизации
+                        .anyRequest().permitAll()
                 )
-                .headers(headers -> headers.frameOptions().disable()) // Для H2 консоли
-                .httpBasic(withDefaults());
+                .httpBasic(httpBasic -> {}); // Включаем Basic Auth
 
         return http.build();
     }
