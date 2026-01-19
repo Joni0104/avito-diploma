@@ -2,6 +2,7 @@ package com.avito.diploma.controller;
 
 import com.avito.diploma.dto.*;
 import com.avito.diploma.service.AdService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -9,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+@Slf4j
 @RestController
 @RequestMapping("/ads")
 @CrossOrigin(value = "http://localhost:3000")
@@ -25,6 +28,7 @@ import java.io.IOException;
 public class AdController {
 
     private final AdService adService;
+    private final ObjectMapper objectMapper;
 
     @Operation(
             summary = "Получение всех объявлений",
@@ -74,8 +78,13 @@ public class AdController {
     )
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AdDTO> addAdWithImage(
-            @RequestPart("properties") CreateOrUpdateAdDTO properties,
+            @RequestPart("properties") String propertiesJson,
             @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+
+        log.info("Received image upload request. Image: {}, properties: {}",
+                image != null ? image.getOriginalFilename() : "null", propertiesJson);
+
+        CreateOrUpdateAdDTO properties = objectMapper.readValue(propertiesJson, CreateOrUpdateAdDTO.class);
 
         AdDTO adDTO;
         if (image != null && !image.isEmpty()) {
